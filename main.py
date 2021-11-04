@@ -14,6 +14,7 @@ class Example(QWidget):
         self.year = self.now.year
         self.month = self.now.month
         self.days = []
+        self.table = [[0 for _ in range(7)] for _ in range(6)]
         self.initUI()
 
     def initUI(self):
@@ -44,8 +45,6 @@ class Example(QWidget):
         self.calendar_table.addWidget(self.create_button, 7, 7)
         self.calendar_table.addWidget(self.delete_button, 7, 8)
 
-
-
         for n in range(7):
             self.calendar_table.addWidget(QLabel(rus_day_abbr[n], self), 1, n)
 
@@ -53,37 +52,52 @@ class Example(QWidget):
             for col in range(7):
                 self.butt = QPushButton(self)
                 self.butt.setFixedSize(75, 45)
-                # self.butt.clicked.connect(self.butt_press)
+                self.butt.clicked.connect(self.butt_press)
                 self.calendar_table.addWidget(self.butt, row + 2, col)
                 self.days.append(self.butt)
 
         self.fill()
 
     def fill(self):
+        self.table = [[0 for _ in range(7)] for _ in range(6)]
         self.calendar_label.setText(rus_calend[self.month] + ', ' + str(self.year))
         month_days = calendar.monthrange(self.year, self.month)[1]
         if self.month == 1:
             prew_month_days = calendar.monthrange(self.year - 1, 12)[1]
+            prew_year = self.year - 1
+            prew_mounth = 12
         else:
             prew_month_days = calendar.monthrange(self.year, self.month - 1)[1]
+            prew_year = self.year
+            prew_mounth = self.month - 1
+        if self.month == 12:
+            next_year = self.year + 1
+            next_mounth = 1
+        else:
+            next_year = self.year
+            next_mounth = self.month + 1
+
         week_day = calendar.monthrange(self.year, self.month)[0]
+        for n in range(week_day):
+            self.days[week_day - n - 1].setText(str(prew_month_days - n))
+            self.days[week_day - n - 1].setStyleSheet('background: rgb(243, 243, 243);')
+            self.table[0][week_day - n - 1] = (week_day - n, prew_mounth, prew_year)
+
         for n in range(month_days):
             self.days[n + week_day].setText(str(n + 1))
-            # self.days[n + week_day]['fg'] = 'black'
             if self.year == self.now.year and self.month == self.now.month and n + 1 == self.now.day:
                 self.days[n + week_day].setStyleSheet('background: rgb(0, 128, 0);')
             else:
                 self.days[n + week_day].setStyleSheet('background: rgb(211, 211, 211);')
-        for n in range(week_day):
-            self.days[week_day - n - 1].setText(str(prew_month_days - n))
-            self.days[week_day - n - 1].setStyleSheet('background: rgb(243, 243, 243);')
-        #     self.days[week_day - n - 1]['fg'] = 'gray'
-        #     self.days[week_day - n - 1]['background'] = '#f3f3f3'
+            self.table[(n + week_day) // 7][(n + week_day) % 7] = (n + 1, self.month, self.year)
+
         for n in range(6 * 7 - month_days - week_day):
             self.days[week_day + month_days + n].setText(str(n + 1))
             self.days[week_day + month_days + n].setStyleSheet('background: rgb(243, 243, 243);')
-        #     self.days[week_day + month_days + n]['fg'] = 'gray'
-        #     self.days[week_day + month_days + n]['background'] = '#f3f3f3'
+            self.table[(month_days + week_day + n) // 7][(month_days + week_day + n) % 7] = (
+                n + 1, next_mounth, next_year)
+        for i in self.table:
+            print(i)
 
     def prew(self):
         self.month -= 1
@@ -99,10 +113,12 @@ class Example(QWidget):
             self.year += 1
         self.fill()
 
-    # def butt_press(self):
-    #     print(self.sender().text())
-    #     print(self.senderSignalIndex())
-    #     self.sender().setStyleSheet('background: rgb(0, 128, 0);')
+    def butt_press(self):
+        cord = self.calendar_table.getItemPosition(self.calendar_table.indexOf(self.sender()))
+        print(self.table[cord[0] - 2][cord[1]])
+
+        self.sender().setStyleSheet('background: rgb(128, 0, 0);')
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
