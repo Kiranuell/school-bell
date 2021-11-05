@@ -1,9 +1,13 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QPushButton, QLabel, QScrollArea
+import sqlite3
+from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QPushButton, QLabel, QScrollArea, QVBoxLayout
 from PyQt5.QtCore import *
 import calendar
 from calendar_rus import rus_calend, rus_day_abbr
 import datetime
+
+con = sqlite3.connect("schulglocke.db")
+cur = con.cursor()
 
 
 class Example(QWidget):
@@ -15,6 +19,8 @@ class Example(QWidget):
         self.month = self.now.month
         self.days = []
         self.table = [[0 for _ in range(7)] for _ in range(6)]
+        self.schedule_list = []
+        self.schedule_buttons = []
         self.initUI()
 
     def initUI(self):
@@ -31,12 +37,12 @@ class Example(QWidget):
         self.calendar_label.setAlignment(Qt.AlignCenter)
         self.schedule_label = QLabel("Расписание", self)
         self.schedule_label.setAlignment(Qt.AlignCenter)
-        self.scroll_zone = QScrollArea(self)
         self.create_button = QPushButton("Создать", self)
         self.create_button.setFixedSize(100, 45)
         self.delete_button = QPushButton("удалить", self)
         self.delete_button.setFixedSize(100, 45)
-
+        self.scroll_zone = QScrollArea(self)
+        self.schedule_box = QVBoxLayout(self.scroll_zone)
         self.calendar_table.addWidget(self.prew_button, 0, 0)
         self.calendar_table.addWidget(self.calendar_label, 0, 1, 1, 5)
         self.calendar_table.addWidget(self.next_button, 0, 6)
@@ -44,6 +50,8 @@ class Example(QWidget):
         self.calendar_table.addWidget(self.scroll_zone, 1, 7, 6, 2)
         self.calendar_table.addWidget(self.create_button, 7, 7)
         self.calendar_table.addWidget(self.delete_button, 7, 8)
+
+        self.fill_schedule()
 
         for n in range(7):
             self.calendar_table.addWidget(QLabel(rus_day_abbr[n], self), 1, n)
@@ -86,7 +94,9 @@ class Example(QWidget):
         for n in range(month_days):
             self.days[n + week_day].setText(str(n + 1))
             if self.year == self.now.year and self.month == self.now.month and n + 1 == self.now.day:
-                self.days[n + week_day].setStyleSheet('background: rgb(0, 128, 0);')
+                self.days[n + week_day].setStyleSheet(
+                    'border-color: rgb(0, 128, 0); background: rgb(211, 211, 211); border-width: 5px; border-style: outset;')
+
             else:
                 self.days[n + week_day].setStyleSheet('background: rgb(211, 211, 211);')
             self.table[(n + week_day) // 7][(n + week_day) % 7] = (n + 1, self.month, self.year)
@@ -98,6 +108,16 @@ class Example(QWidget):
                 n + 1, next_mounth, next_year)
         for i in self.table:
             print(i)
+
+    def fill_schedule(self):
+        schedule_info = cur.execute("SELECT ID, NAME, COLOR FROM schedule")
+        for i in schedule_info:
+            self.schedule_list.append(i)
+            butt = QPushButton(i[1], self)
+            butt.setStyleSheet(f"background: rgb({i[2]});")
+            self.schedule_box.addWidget(butt)
+            self.schedule_buttons.append(butt)
+        print(self.schedule_list)
 
     def prew(self):
         self.month -= 1
@@ -116,8 +136,12 @@ class Example(QWidget):
     def butt_press(self):
         cord = self.calendar_table.getItemPosition(self.calendar_table.indexOf(self.sender()))
         print(self.table[cord[0] - 2][cord[1]])
-
-        self.sender().setStyleSheet('background: rgb(128, 0, 0);')
+        date = self.table[cord[0] - 2][cord[1]]
+        if self.year == date[2] and self.month == date[1] and date[0] == self.now.day:
+            self.sender().setStyleSheet(
+                'border-color: rgb(0, 128, 0); background: rgb(128, 0, 0); border-width: 5px; border-style: outset;')
+        else:
+            self.sender().setStyleSheet('background: rgb(128, 0, 0);')
 
 
 if __name__ == '__main__':
