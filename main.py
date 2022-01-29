@@ -1,6 +1,6 @@
 import sys
 import sqlite3
-from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QPushButton, QLabel, QScrollArea, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QPushButton, QLabel, QScrollArea, QVBoxLayout, QButtonGroup
 from PyQt5.QtCore import *
 import calendar
 from calendar_rus import rus_calend, rus_day_abbr
@@ -19,39 +19,58 @@ class Example(QWidget):
         self.month = self.now.month
         self.days = []
         self.table = [[0 for _ in range(7)] for _ in range(6)]
-        self.schedule_list = []
-        self.schedule_buttons = []
+
         self.initUI()
 
     def initUI(self):
         self.setGeometry(300, 300, 300, 300)
         self.setWindowTitle('Управление звонками')
+
         self.calendar_table = QGridLayout(self)
+
         self.prew_button = QPushButton("<", self)
         self.prew_button.setFixedSize(75, 45)
         self.prew_button.clicked.connect(self.prew)
+
         self.next_button = QPushButton(">", self)
         self.next_button.setFixedSize(75, 45)
         self.next_button.clicked.connect(self.next)
+
         self.calendar_label = QLabel(self)
         self.calendar_label.setAlignment(Qt.AlignCenter)
+
         self.schedule_label = QLabel("Расписание", self)
         self.schedule_label.setAlignment(Qt.AlignCenter)
+
         self.create_button = QPushButton("Создать", self)
         self.create_button.setFixedSize(100, 45)
+
         self.delete_button = QPushButton("удалить", self)
         self.delete_button.setFixedSize(100, 45)
-        self.scroll_zone = QScrollArea(self)
-        self.schedule_box = QVBoxLayout(self.scroll_zone)
+
+        self.schedule = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
+        self.widget = QWidget()  # Widget that contains the collection of Vertical Box
+        self.vbox = QVBoxLayout()  # The Vertical Box that contains the Horizontal Boxes of  labels and buttons
+
+
+
+
         self.calendar_table.addWidget(self.prew_button, 0, 0)
         self.calendar_table.addWidget(self.calendar_label, 0, 1, 1, 5)
         self.calendar_table.addWidget(self.next_button, 0, 6)
         self.calendar_table.addWidget(self.schedule_label, 0, 7, 1, 2)
-        self.calendar_table.addWidget(self.scroll_zone, 1, 7, 6, 2)
         self.calendar_table.addWidget(self.create_button, 7, 7)
         self.calendar_table.addWidget(self.delete_button, 7, 8)
+        self.calendar_table.addWidget(self.schedule, 1, 7, 6, 2)
 
         self.fill_schedule()
+
+        self.widget.setLayout(self.vbox)
+
+        self.schedule.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.schedule.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.schedule.setWidgetResizable(True)
+        self.schedule.setWidget(self.widget)
 
         for n in range(7):
             self.calendar_table.addWidget(QLabel(rus_day_abbr[n], self), 1, n)
@@ -65,6 +84,7 @@ class Example(QWidget):
                 self.days.append(self.butt)
 
         self.fill()
+
 
     def fill(self):
         self.table = [[0 for _ in range(7)] for _ in range(6)]
@@ -112,12 +132,9 @@ class Example(QWidget):
     def fill_schedule(self):
         schedule_info = cur.execute("SELECT ID, NAME, COLOR FROM schedule")
         for i in schedule_info:
-            self.schedule_list.append(i)
             butt = QPushButton(i[1], self)
             butt.setStyleSheet(f"background: rgb({i[2]});")
-            self.schedule_box.addWidget(butt)
-            self.schedule_buttons.append(butt)
-        print(self.schedule_list)
+            self.vbox.addWidget(butt)
 
     def prew(self):
         self.month -= 1
